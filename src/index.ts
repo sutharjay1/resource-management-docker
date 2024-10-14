@@ -145,7 +145,7 @@ async function getResourceLimits(): Promise<string> {
 async function main(): Promise<void> {
 	console.log(
 		chalk.blue(
-			figlet.textSync('Docker Manager', {
+			figlet.textSync('Docker Resource Manager', {
 				horizontalLayout: 'universal smushing',
 			})
 		)
@@ -221,6 +221,8 @@ async function main(): Promise<void> {
 
 main();
 
-console.log(
-	"This script demonstrates the structure of the Docker Resource Management CLI tool. To run it properly, you'd need to set up a Docker environment and install the required npm packages."
-);
+// console.log(
+// 	"This script demonstrates the structure of the Docker Resource Management CLI tool. To run it properly, you'd need to set up a Docker environment and install the required npm packages."
+// );
+
+console.log(chalk.blue('Docker Resource Management CLI tool\n'));
