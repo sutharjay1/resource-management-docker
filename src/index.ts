@@ -2,9 +2,8 @@ import { execSync } from 'child_process';
 import readline from 'readline';
 import chalk from 'chalk';
 import inquirer from 'inquirer';
-import ora, { Ora } from 'ora';
+import ora from 'ora';
 import figlet from 'figlet';
-import scuid from 'scuid';
 
 type UserPlan = 'free' | 'paid';
 
@@ -18,19 +17,20 @@ interface ContainerStats {
 	pids: string;
 }
 
-const globalStore = {
-	containerName: '',
+interface GlobalStore {
+	containerName: string;
+	userPlan: UserPlan;
+	resourceLimits: string;
+}
 
-	userPlan: 'free' as UserPlan,
+const globalStore: GlobalStore = {
+	containerName: '',
+	userPlan: 'free',
 	resourceLimits: '',
 };
 
-let loading = true;
-
 function createContainer(userPlan: UserPlan, resourceLimits: string): void {
-	const uniqueId = scuid();
-
-	const containerName = `resource-managed-container-${userPlan}-${uniqueId}`;
+	const containerName = `resource-managed-container-${userPlan}-${Date.now()}`;
 	const imageName = 'alpine';
 
 	globalStore.containerName = containerName;
@@ -49,11 +49,12 @@ function createContainer(userPlan: UserPlan, resourceLimits: string): void {
 }
 
 function stopAndRemoveContainer(): void {
-	const containerName = globalStore.containerName;
+	const { containerName } = globalStore;
 	if (containerName) {
 		try {
-			execSync(`docker stop ${containerName}`);
-			execSync(`docker rm ${containerName}`);
+			execSync(
+				`docker stop ${containerName} && docker rm ${containerName}`
+			);
 			console.log(
 				chalk.blue(`Stopped and removed container: ${containerName}`)
 			);
@@ -81,33 +82,17 @@ function getContainerStats(containerName: string): ContainerStats | null {
 	}
 }
 
-async function displayStats(spinner: Ora): Promise<void> {
-	if (loading) {
-		spinner.start();
-	}
-
+function displayStats(): void {
 	const stats = getContainerStats(globalStore.containerName);
 	if (stats) {
-		loading = false;
-		spinner.stop();
 		console.clear();
-
-		const globalData = [
-			{
-				name: 'User Plan',
-				value: globalStore.userPlan,
-			},
-			{
-				name: 'Resource Limits',
-				value: globalStore.resourceLimits,
-			},
-			{
-				name: 'Container Name',
-				value: globalStore.containerName,
-			},
-		];
-
-		const tableData = [
+		console.log(chalk.cyan('Container Stats:'));
+		console.table([
+			{ name: 'User Plan', value: globalStore.userPlan },
+			{ name: 'Resource Limits', value: globalStore.resourceLimits },
+			{ name: 'Container Name', value: globalStore.containerName },
+		]);
+		console.table([
 			{ Metric: 'Container ID', Value: stats.id },
 			{ Metric: 'Name', Value: stats.name },
 			{ Metric: 'CPU %', Value: stats.cpu },
@@ -115,13 +100,7 @@ async function displayStats(spinner: Ora): Promise<void> {
 			{ Metric: 'Network I/O', Value: stats.netIO },
 			{ Metric: 'Block I/O', Value: stats.blockIO },
 			{ Metric: 'PIDs', Value: stats.pids },
-			{ Metric: 'User Plan', Value: globalStore.userPlan },
-			{ Metric: 'Resource Limits', Value: globalStore.resourceLimits },
-		];
-
-		console.log(chalk.cyan('Container Stats:'));
-		console.table(globalData);
-		console.table(tableData);
+		]);
 		console.log(
 			chalk.green('Type "stop" to stop and remove the container.')
 		);
@@ -219,7 +198,10 @@ async function main(): Promise<void> {
 
 	const spinner = ora('Loading container stats...').start();
 
-	const statsInterval = setInterval(() => displayStats(spinner), 10000);
+	const statsInterval = setInterval(() => {
+		spinner.stop();
+		displayStats();
+	}, 5000);
 
 	rl.on('line', (input) => {
 		if (input.trim().toLowerCase() === 'stop') {
@@ -238,3 +220,7 @@ async function main(): Promise<void> {
 }
 
 main();
+
+console.log(
+	"This script demonstrates the structure of the Docker Resource Management CLI tool. To run it properly, you'd need to set up a Docker environment and install the required npm packages."
+);
